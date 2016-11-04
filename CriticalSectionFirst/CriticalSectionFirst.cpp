@@ -1,33 +1,52 @@
 #include "stdafx.h"
-#include "windows.h"
-#include "wchar.h"
-#include "string"
-#include "iostream"
+#include <windows.h>
+#include <wchar.h>
+#include <string>
+#include <iostream>
+#include <stdio.h>
+#include <conio.h>
+#include <tchar.h>
 
 void logError(LPCTSTR);
-void logInfo(LPCTSTR);
 void logInfo(LPCTSTR, LPCTSTR);
-void doDirtyWork(LPCTSTR);
+void doDirtyWork(LPCTSTR, HANDLE);
 
 int main()
 {
-	const LPCTSTR SHARED_MEMORY_FILENAME = TEXT("SharedMemoryFile.txt");
+	const LPCWSTR SHARED_MEMORY_NAME = TEXT("SharedMemory");
+	const LPCWSTR MUTEX_NAME = TEXT("SyncMutex");
 	const int SHARED_MEMORY_BUFFER_SIZE = 256;
 	
 	HANDLE sharedMemory;
+	HANDLE mutex;
 	LPCTSTR messageBuffer;
 
-	HANDLE sharedMemory = CreateFileMapping(
+	sharedMemory = CreateFileMapping(
 		INVALID_HANDLE_VALUE,
 		NULL,
 		PAGE_READWRITE,
 		0,
 		SHARED_MEMORY_BUFFER_SIZE,
-		SHARED_MEMORY_FILENAME
+		SHARED_MEMORY_NAME
 	);
 	
 	if (sharedMemory == NULL) {
 		logError(TEXT("Cannot get or create shared memory"));
+
+		std::cout << GetLastError();
+		
+		getchar();
+		return 1;
+	}
+
+	mutex = CreateMutex(
+		NULL,
+		FALSE,
+		MUTEX_NAME
+	);
+
+	if (mutex == NULL) {
+		logError(TEXT("Cannot create mutex"));
 
 		return 1;
 	}
@@ -44,50 +63,54 @@ int main()
 		logError(TEXT("Cannot map view of file"));
 
 		CloseHandle(sharedMemory);
+		CloseHandle(mutex);
 
 		return 1;
 	}
 
-	doDirtyWork(messageBuffer);
+	doDirtyWork(messageBuffer, mutex);
 
 	UnmapViewOfFile(messageBuffer);
 	CloseHandle(sharedMemory);
+	CloseHandle(mutex);
+
+	getchar();
 
 	return 0;
 }
 
-void doDirtyWork(LPCTSTR messageBuffer) {
-	const LPCTSTR PROCESS_MESSAGE = TEXT("first process...");
+void doDirtyWork(LPCTSTR messageBuffer, HANDLE mutex) {
+	const LPCTSTR PROCESS_MESSAGE = TEXT("FIRST PROCESS MESSAGE");
 
-	// TODO LOCK
+	for (int i = 0; i < 3; i++) {
+		WaitForSingleObject(mutex, INFINITE);
 
-	logInfo(TEXT("Read shared memory message"), messageBuffer);
+		logInfo(TEXT("Read shared memory message"), messageBuffer);
 
-	logInfo(TEXT("Write shared memory message"), PROCESS_MESSAGE);
+		logInfo(TEXT("Write shared memory message"), PROCESS_MESSAGE);
 
-	CopyMemory(
-		(PVOID)messageBuffer,
-		PROCESS_MESSAGE,
-		(_tcslen(PROCESS_MESSAGE) * sizeof(LPCTSTR))
-	);
+		CopyMemory(
+			(PVOID)messageBuffer,
+			PROCESS_MESSAGE,
+			(_tcslen(PROCESS_MESSAGE) * sizeof(LPCTSTR))
+		);
 
-	logInfo(TEXT("Read shared memory message"), messageBuffer);
+		logInfo(TEXT("Read shared memory message"), messageBuffer);
 
-	// TODO UNLOCK
+		Sleep(100);
+
+		ReleaseMutex(mutex);
+	}
 }
 
 void logError(LPCTSTR message) {
-	std::cout << "[ERROR]: FirstProgram: " << message << std::endl;
-	std::flush(std::cout);
-}
-
-void logInfo(LPCTSTR message) {
-	std::cout << "[INFO]: FirstProgram:" << message << std::endl;
+	std::wcout << "[ERROR]: FirstProgram: " << message << std::endl;
 	std::flush(std::cout);
 }
 
 void logInfo(LPCTSTR messagePrefix, LPCTSTR message) {
-	std::cout << "[INFO]: FirstProgram: " << messagePrefix << ": " << message;
+	std::wcout << "[INFO]: FirstProgram: " << messagePrefix
+		<< ": " << message << std::endl;
 	std::flush(std::cout);
 }
 
