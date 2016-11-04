@@ -7,6 +7,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CriticalSectionFirst", "Cri
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CriticalSectionSecond", "CriticalSectionSecond\CriticalSectionSecond.vcxproj", "{1C6C1A38-A09A-4932-B853-85C9D5CFC85E}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{249F959F-1FD8-46B1-BB29-B364950C5668}"
+	ProjectSection(SolutionItems) = preProject
+		SharedMemoryFile.txt = SharedMemoryFile.txt
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
